@@ -1,0 +1,23 @@
+{
+  "name": "cuboid-experiment",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "webpack serve"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.3.0",
+    "@types/three": "^0.144.0",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
+    "eslint": "^8.23.1",
+    "html-webpack-plugin": "^5.5.0",
+    "prettier": "^2.7.1",
+    "swc-loader": "^0.2.3",
+    "three": "^0.144.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.3",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.0"
+  }
+}
