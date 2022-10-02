@@ -14,7 +14,7 @@ const origin = new THREE.Vector3(0, 0, 0);
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-camera.position.set(8, 10, 15);
+camera.position.set(3, 3, 12);
 camera.lookAt(origin);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -24,8 +24,16 @@ const orbitControls = new OrbitControls(camera, renderer.domElement);
 
 document.body.appendChild(renderer.domElement);
 
-// const axesHelper = new THREE.AxesHelper(1 / 4);
-// scene.add(axesHelper);
+function makeButton(label: string, onClick: () => void) {
+  const button = document.createElement("button");
+  const buttonLabel = document.createTextNode(label);
+  button.appendChild(buttonLabel);
+  button.onclick = onClick;
+  return button;
+}
+
+const axesHelper = new THREE.AxesHelper(1 / 4);
+scene.add(axesHelper);
 
 function roundVector(vector: THREE.Vector3) {
   const x = Math.round(vector.x * 1000) / 1000 || 0;
@@ -102,6 +110,8 @@ class Arrow extends THREE.ArrowHelper {
 
 class Face extends THREE.Object3D {
   mesh: THREE.Mesh;
+  width: number;
+  height: number;
 
   constructor({
     name,
@@ -119,19 +129,32 @@ class Face extends THREE.Object3D {
     super();
 
     this.name = name;
+    this.width = width;
+    this.height = height;
 
     const planeGeom = new THREE.PlaneGeometry(width, height);
     const planeMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
     const planeMesh = new THREE.Mesh(planeGeom, planeMaterial);
-    planeMesh.name = `${name}:Mesh`;
 
-    const arrowX = new Arrow({ x: 1, y: 0, z: 0, size: width / 2 });
-    const arrowY = new Arrow({ x: 0, y: 1, z: 0, size: height / 2 });
+    const arrowX = new Arrow({
+      x: 1,
+      y: 0,
+      z: 0,
+      size: 1,
+    });
+
+    const arrowY = new Arrow({
+      x: 0,
+      y: 1,
+      z: 0,
+      size: 1,
+    });
+
     const arrowZ = new Arrow({
       x: 0,
       y: 0,
       z: 1,
-      size: Math.min(width, height) / 2,
+      size: 1,
     });
 
     const characterSize = 1 / 16;
@@ -180,6 +203,8 @@ class Cuboid extends THREE.Object3D {
   top: Face;
   bottom: Face;
 
+  faces: Face[];
+
   constructor(width: number, height: number, depth: number) {
     super();
 
@@ -194,70 +219,73 @@ class Cuboid extends THREE.Object3D {
 
     const back = new Face({
       name: "Back",
-
       width,
       height,
-
       character: "K",
       color: "orange",
     });
-    back.position.set(0, 0, -depth / 2);
-    back.rotateY(Math.PI);
+    back.applyMatrix4(
+      new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(0, Math.PI, 0, "XYZ")
+      )
+    );
+    back.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, -depth / 2));
 
     const right = new Face({
       name: "Right",
-
       width: depth,
       height,
-
       character: "R",
       color: "yellow",
     });
-    right.rotateY(-Math.PI / 2);
-    right.position.set(-width / 2, 0, 0);
+    right.applyMatrix4(
+      new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(0, -Math.PI / 2, 0, "XYZ")
+      )
+    );
+    right.applyMatrix4(new THREE.Matrix4().makeTranslation(-width / 2, 0, 0));
 
     const left = new Face({
       name: "Left",
-
       width: depth,
       height,
-
       character: "L",
       color: "green",
     });
-    left.rotateY(Math.PI / 2);
-    left.position.set(width / 2, 0, 0);
+    left.applyMatrix4(
+      new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(0, Math.PI / 2, 0, "XYZ")
+      )
+    );
+    left.applyMatrix4(new THREE.Matrix4().makeTranslation(width / 2, 0, 0));
 
     const top = new Face({
       name: "Top",
-
       width,
       height: depth,
-
       character: "T",
       color: "blue",
     });
-    top.rotateX(-Math.PI / 2);
-    top.position.set(0, height / 2, 0);
+    top.applyMatrix4(
+      new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(-Math.PI / 2, 0, 0, "XYZ")
+      )
+    );
+    top.applyMatrix4(new THREE.Matrix4().makeTranslation(0, height / 2, 0));
 
     const bottom = new Face({
       name: "Bottom",
-
       width,
       height: depth,
-
       character: "B",
       color: "violet",
     });
-    bottom.rotateX(Math.PI / 2);
-    bottom.position.set(0, -height / 2, 0);
-
-    this.add(front);
-    this.add(back);
-    this.add(right);
-    this.add(left);
-    this.add(top);
-    this.add(bottom);
+    bottom.applyMatrix4(
+      new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(Math.PI / 2, 0, 0, "XYZ")
+      )
+    );
+    bottom.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -height / 2, 0));
 
     this.front = front;
     this.back = back;
@@ -265,6 +293,18 @@ class Cuboid extends THREE.Object3D {
     this.left = left;
     this.top = top;
     this.bottom = bottom;
+
+    this.faces = [front, back, right, left, top, bottom];
+  }
+
+  addToScene(scene: THREE.Scene) {
+    scene.add(cuboid);
+    scene.add(cuboid.front);
+    scene.add(cuboid.back);
+    scene.add(cuboid.right);
+    scene.add(cuboid.left);
+    scene.add(cuboid.top);
+    scene.add(cuboid.bottom);
   }
 
   getVertices() {
@@ -276,52 +316,204 @@ class Cuboid extends THREE.Object3D {
     const bottom = this.bottom.getVertices();
     return { front, back, right, left, top, bottom };
   }
+
+  rotateX90() {
+    const angle = Math.PI / 2;
+    const euler = new THREE.Euler(angle, 0, 0, "XYZ");
+    const matrix = new THREE.Matrix4().makeRotationFromEuler(euler);
+    this.front.applyMatrix4(matrix);
+    this.back.applyMatrix4(matrix);
+    this.left.applyMatrix4(matrix);
+    this.right.applyMatrix4(matrix);
+    this.top.applyMatrix4(matrix);
+    this.bottom.applyMatrix4(matrix);
+  }
+
+  rotateY90() {
+    const angle = Math.PI / 2;
+    const euler = new THREE.Euler(0, angle, 0, "XYZ");
+    const matrix = new THREE.Matrix4().makeRotationFromEuler(euler);
+    this.front.applyMatrix4(matrix);
+    this.back.applyMatrix4(matrix);
+    this.left.applyMatrix4(matrix);
+    this.right.applyMatrix4(matrix);
+    this.top.applyMatrix4(matrix);
+    this.bottom.applyMatrix4(matrix);
+  }
+
+  rotateZ90() {
+    const angle = Math.PI / 2;
+    const euler = new THREE.Euler(0, 0, angle, "XYZ");
+    const matrix = new THREE.Matrix4().makeRotationFromEuler(euler);
+    this.front.applyMatrix4(matrix);
+    this.back.applyMatrix4(matrix);
+    this.left.applyMatrix4(matrix);
+    this.right.applyMatrix4(matrix);
+    this.top.applyMatrix4(matrix);
+    this.bottom.applyMatrix4(matrix);
+  }
+
+  unwrap(direction: "North" | "South" | "East" | "West") {
+    const frontNormal = new THREE.Vector3(0, 0, 1);
+    const front = this.faces.find((face) => {
+      return face.getNormal().equals(frontNormal);
+    });
+
+    const backNormal = new THREE.Vector3(0, 0, -1);
+    const back = this.faces.find((face) => {
+      return face.getNormal().equals(backNormal);
+    });
+
+    const rightNormal = new THREE.Vector3(-1, 0, 0);
+    const right = this.faces.find((face) => {
+      return face.getNormal().equals(rightNormal);
+    });
+
+    const leftNormal = new THREE.Vector3(1, 0, 0);
+    const left = this.faces.find((face) => {
+      return face.getNormal().equals(leftNormal);
+    });
+
+    const topNormal = new THREE.Vector3(0, 1, 0);
+    const top = this.faces.find((face) => {
+      return face.getNormal().equals(topNormal);
+    });
+
+    const bottomNormal = new THREE.Vector3(0, -1, 0);
+    const bottom = this.faces.find((face) => {
+      return face.getNormal().equals(bottomNormal);
+    });
+
+    if (front && back && right && left && top && bottom) {
+      const topVertices = top.getVertices();
+      const topCorners = {
+        topLeft: topVertices.find((v) => v.x < 0 && v.z < 0),
+        topRight: topVertices.find((v) => v.x > 0 && v.z < 0),
+        bottomLeft: topVertices.find((v) => v.x < 0 && v.z > 0),
+        bottomRight: topVertices.find((v) => v.x > 0 && v.z > 0),
+      };
+
+      const frontVertices = front.getVertices();
+      const frontCorners = {
+        topLeft: frontVertices.find((v) => v.x < 0 && v.y > 0),
+        topRight: frontVertices.find((v) => v.x > 0 && v.y > 0),
+        bottomLeft: frontVertices.find((v) => v.x < 0 && v.y < 0),
+        bottomRight: frontVertices.find((v) => v.x > 0 && v.y < 0),
+      };
+
+      if (
+        frontCorners.topLeft &&
+        frontCorners.bottomRight &&
+        topCorners.topLeft
+      ) {
+        const width = frontCorners.bottomRight.x - frontCorners.topLeft.x;
+        const height = frontCorners.topLeft.y - frontCorners.bottomRight.y;
+        const depth = frontCorners.topLeft.z - topCorners.topLeft.z;
+
+        front.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(0, 0, -depth / 2)
+        );
+
+        if (direction === "West") {
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, 0, depth / 2)
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeRotationFromEuler(
+              new THREE.Euler(0, Math.PI, 0, "XYZ")
+            )
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(-width - depth, 0, 0)
+          );
+        } else if (direction === "North") {
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, 0, depth / 2)
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeRotationFromEuler(
+              new THREE.Euler(Math.PI, 0, 0, "XYZ")
+            )
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, height + depth, 0)
+          );
+        } else if (direction === "South") {
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, 0, depth / 2)
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeRotationFromEuler(
+              new THREE.Euler(Math.PI, 0, 0, "XYZ")
+            )
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, -(height + depth), 0)
+          );
+        } else {
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(0, 0, depth / 2)
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeRotationFromEuler(
+              new THREE.Euler(0, Math.PI, 0, "XYZ")
+            )
+          );
+          back.applyMatrix4(
+            new THREE.Matrix4().makeTranslation(width + depth, 0, 0)
+          );
+        }
+
+        top.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(0, -height / 2, -depth / 2)
+        );
+        top.applyMatrix4(
+          new THREE.Matrix4().makeRotationFromEuler(
+            new THREE.Euler(Math.PI / 2, 0, 0, "XYZ")
+          )
+        );
+        top.applyMatrix4(new THREE.Matrix4().makeTranslation(0, height / 2, 0));
+
+        bottom.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(0, height / 2, -depth / 2)
+        );
+        bottom.applyMatrix4(
+          new THREE.Matrix4().makeRotationFromEuler(
+            new THREE.Euler(-Math.PI / 2, 0, 0, "XYZ")
+          )
+        );
+        bottom.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(0, -height / 2, 0)
+        );
+
+        right.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(width / 2, 0, -depth / 2)
+        );
+        right.applyMatrix4(
+          new THREE.Matrix4().makeRotationFromEuler(
+            new THREE.Euler(0, Math.PI / 2, 0, "XYZ")
+          )
+        );
+        right.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(-width / 2, 0, 0)
+        );
+
+        left.applyMatrix4(
+          new THREE.Matrix4().makeTranslation(-width / 2, 0, -depth / 2)
+        );
+        left.applyMatrix4(
+          new THREE.Matrix4().makeRotationFromEuler(
+            new THREE.Euler(0, -Math.PI / 2, 0, "XYZ")
+          )
+        );
+        left.applyMatrix4(new THREE.Matrix4().makeTranslation(width / 2, 0, 0));
+      }
+    }
+  }
 }
 
-function rotateY(cuboid: Cuboid, angle: number) {
-  const rotateToTheRight = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(0, angle, 0, "XYZ")
-  );
-  cuboid.applyMatrix4(rotateToTheRight);
-}
-
-function rotateZ(cuboid: Cuboid, angle: number) {
-  const rotateToTheRight = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(0, 0, angle, "XYZ")
-  );
-  cuboid.applyMatrix4(rotateToTheRight);
-}
-
-function rotateX(cuboid: Cuboid, angle: number) {
-  const rotateToTheRight = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(angle, 0, 0, "XYZ")
-  );
-  cuboid.applyMatrix4(rotateToTheRight);
-}
-
-const cuboid1 = new Cuboid(1, 2, 3);
-cuboid1.position.set(-6, 0, 0);
-scene.add(cuboid1);
-
-const cuboid2 = new Cuboid(1, 2, 3);
-rotateY(cuboid2, Math.PI / 2);
-cuboid2.position.set(-2, 0, 0);
-
-const cuboid3 = new Cuboid(1, 2, 3);
-rotateY(cuboid3, Math.PI / 2);
-rotateZ(cuboid3, Math.PI / 2);
-cuboid3.position.set(2, 0, 0);
-
-const cuboid4 = new Cuboid(1, 2, 3);
-rotateY(cuboid4, Math.PI / 2);
-rotateZ(cuboid4, Math.PI / 2);
-rotateX(cuboid4, Math.PI / 2);
-cuboid4.position.set(6, 0, 0);
-
-scene.add(cuboid1);
-scene.add(cuboid2);
-scene.add(cuboid3);
-scene.add(cuboid4);
+const cuboid = new Cuboid(1, 2, 3);
+cuboid.addToScene(scene);
 
 function update() {
   orbitControls.update();
@@ -338,3 +530,48 @@ function tick() {
 }
 
 tick();
+
+const rotateXButton = makeButton("Rotate X", () => {
+  cuboid.rotateX90();
+});
+
+const rotateYButton = makeButton("Rotate Y", () => {
+  cuboid.rotateY90();
+});
+
+const rotateZButton = makeButton("Rotate Z", () => {
+  cuboid.rotateZ90();
+});
+
+const unwrapButton = makeButton("Unwrap", () => {
+  cuboid.unwrap("West");
+});
+
+function px(n: number) {
+  return `${n}px`;
+}
+
+let top = 20;
+let right = 20;
+let buttonHeight = 40;
+
+rotateXButton.style.position = "absolute";
+rotateXButton.style.right = px(right);
+rotateXButton.style.top = px(top);
+
+rotateYButton.style.position = "absolute";
+rotateYButton.style.right = px(right);
+rotateYButton.style.top = px(top + buttonHeight);
+
+rotateZButton.style.position = "absolute";
+rotateZButton.style.right = px(right);
+rotateZButton.style.top = px(top + buttonHeight * 2);
+
+unwrapButton.style.position = "absolute";
+unwrapButton.style.right = px(right);
+unwrapButton.style.top = px(top + buttonHeight * 3);
+
+document.body.append(rotateXButton);
+document.body.append(rotateYButton);
+document.body.append(rotateZButton);
+document.body.append(unwrapButton);
